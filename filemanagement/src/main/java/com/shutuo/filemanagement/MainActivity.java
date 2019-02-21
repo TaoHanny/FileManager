@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     showToastMsg("保存成功");
                     break;
                 case 101:
-                    String txt = (String) msg.obj;
+                    String txt =  msg.obj.toString();
                     if (!TextUtils.isEmpty(txt))
                         u_disk_show.setText("读取到的数据是：" + txt);
                     break;
@@ -278,9 +278,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 sb.append(read);
 
             }
+            String  rd = ""+sb;
             Message msg = mHandler.obtainMessage();
             msg.what = 101;
-            msg.obj = read.toString();
+            msg.obj = rd;
             mHandler.sendMessage(msg);
         } catch (Exception e) {
             e.printStackTrace();
