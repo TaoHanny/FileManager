@@ -7,15 +7,18 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.mbms.DownloadProgressListener;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,10 +27,13 @@ import com.github.mjdev.libaums.fs.FileSystem;
 import com.github.mjdev.libaums.fs.UsbFile;
 import com.github.mjdev.libaums.fs.UsbFileInputStream;
 import com.github.mjdev.libaums.partition.Partition;
+import com.shutuo.filemanagement.usbHelper.UsbHelper;
 import com.shutuo.filemanagement.util.FileUtil;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,13 +49,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button u_disk_read;
     //显示读取的内容
     private TextView u_disk_show;
+    //显示第一张图片
+    private ImageView u_disk_image;
     //自定义U盘读写权限
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     //当前处接U盘列表
     private UsbMassStorageDevice[] storageDevices;
     //当前U盘所在文件目录
     private UsbFile cFolder;
-    private final static String U_DISK_FILE_NAME = "u_disk.txt";
+    //当前U盘图片
+    private File[] files;
+    private UsbHelper usbHelper;
+    private final static String U_DISK_FILE_NAME = "image";
     private final static String TAG = MainActivity.class.getName();
     private Handler mHandler = new Handler() {
         @Override
@@ -80,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         u_disk_write = (Button) findViewById(R.id.u_disk_write);
         u_disk_read = (Button) findViewById(R.id.u_disk_read);
         u_disk_show = (TextView) findViewById(R.id.u_disk_show);
+        u_disk_image = (ImageView) findViewById(R.id.u_disk_image);
         u_disk_write.setOnClickListener(this);
         u_disk_read.setOnClickListener(this);
     }
@@ -266,36 +278,153 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void readTxtFromUDisk(UsbFile usbFile) {
         UsbFile descFile = usbFile;
-        //读取文件内容
-        InputStream is = new UsbFileInputStream(descFile);
-        //读取秘钥中的数据进行匹配
-        StringBuilder sb = new StringBuilder();
-        BufferedReader bufferedReader = null;
-        try {
-            bufferedReader = new BufferedReader(new InputStreamReader(is));
-            String read;
-            while ((read = bufferedReader.readLine()) != null) {
-                sb.append(read);
-
-            }
-            String  rd = ""+sb;
-            Message msg = mHandler.obtainMessage();
-            msg.what = 101;
-            msg.obj = rd;
-            mHandler.sendMessage(msg);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
+        if(descFile.isDirectory()){
+            Log.d(TAG, "readTxtFromUDisk: usbFile = "+usbFile.getName());
             try {
-                if (bufferedReader != null) {
-                    bufferedReader.close();
+                UsbFile[] usbFiles = descFile.listFiles();
+                for (UsbFile usbFile1 : usbFiles){
+                    copyUSbFile(usbFile1);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
+//                        
+//                        files =  getImages("/"+usbFile1.getName());
+//                        if (files.length != 0){
+//                            u_disk_image.setImageURI(Uri.fromFile(files[1]));
+//                        }
+        //读取文件内容
+//        InputStream is = new UsbFileInputStream(descFile);
+//        //读取秘钥中的数据进行匹配
+//        StringBuilder sb = new StringBuilder();
+//        BufferedReader bufferedReader = null;
+//        try {
+//            bufferedReader = new BufferedReader(new InputStreamReader(is));
+//            String read;
+//            while ((read = bufferedReader.readLine()) != null) {
+//                sb.append(read);
+//            }
+//            String  rd = ""+sb;
+//            if (rd !=null && !rd.isEmpty()){
+//                Message msg = mHandler.obtainMessage();
+//                msg.what = 101;
+//                msg.obj = rd;
+//                mHandler.sendMessage(msg);
+//            }
+//        }
+//        catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        finally {
+//            try {
+//                if (bufferedReader != null) {
+//                    bufferedReader.close();
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
     }
 
+    /**
+     * 复制 USB 文件到本地
+     *
+     * @param file USB文件
+     */
+    private void copyUSbFile(final UsbFile file) {
+        //复制到本地的文件路径
+        final String filePath = "/sdcard/arcFace/register" + File.separator + file.getName();
+        Log.d(TAG, "copyUSbFile: filePath = "+ filePath);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                //复制结果
+                if(usbHelper==null){
+                    Log.d(TAG, "run: usbhelper");
+                }
+
+                boolean result;
+                try {
+                    //开始写入
+                    UsbFileInputStream uis = new UsbFileInputStream(file);//读取选择的文件的
+
+                    FileOutputStream fos = new FileOutputStream(filePath);
+                    //这里uis.available一直为0
+//            int avi = uis.available();
+                    long avi = file.getLength();
+                    int writeCount = 0;
+                    int bytesRead;
+                    byte[] buffer = new byte[1024];
+                    while ((bytesRead = uis.read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                        writeCount += bytesRead;
+//                Log.e(TAG, "Progress : write : " + writeCount + " All : " + avi);
+//                        if (progressListener != null) {
+//                            //回调下载进度
+//                            progressListener.downloadProgress((int) (writeCount * 100 / avi));
+//                        }
+                    }
+                    fos.flush();
+                    uis.close();
+                    fos.close();
+                    result = true;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    result = false;
+                }
+//                return result;
+//                final boolean result = usbHelper.saveUSbFileToLocal(file, filePath, new UsbHelper.DownloadProgressListener() {
+//                    @Override
+//                    public void downloadProgress(final int progress) {
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                String text = "From Usb "
+//                                        + "\nTo Local " + "/sdcard/arcFace/register"
+//                                        + "\n Progress : " + progress;
+//                                Log.d(TAG, "run: text = "+text);
+////                                showProgressTv.setText(text);
+//                            }
+//                        });
+//                    }
+//                });
+//                //主线程更新UI
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        if (result) {
+////                            openLocalFile(new File(localCurrentPath));
+//                        } else {
+//                            Toast.makeText(MainActivity.this, "复制失败",
+//                                    Toast.LENGTH_SHORT).show();
+//                        }
+//                    }
+//                });
+            }
+        }).start();
+    }
+
+    private File[] getImages(String path){
+        Log.d(TAG, "getImages: ");
+        File file = new File(path);
+        Log.d(TAG, "getImages: file");
+        if(file.isDirectory()){
+            Log.d(TAG, "getImages: directory");
+            File[] fs = file.listFiles(imageFilter);
+            return fs;
+        }
+        return null;
+    }
+
+    private FileFilter imageFilter = new FileFilter() {
+        @Override
+        public boolean accept(File pathname) {
+             String name = pathname.getName();
+             return name.endsWith(".jpg") || name.endsWith(".png") || name.endsWith(".jpeg");
+        }
+    };
     @Override
     protected void onDestroy() {
         super.onDestroy();
