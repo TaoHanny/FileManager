@@ -31,12 +31,12 @@ public class UsbActivity extends AppCompatActivity implements USBBroadCastReceiv
 
     //本地文件列表相关
     private ArrayList<File> localList;
-    private FileListAdapter<File> localAdapter;
+    private FileListAdapter localAdapter;
     private String localRootPath = "/sdcard/arcFace/register/";
     private String localCurrentPath = "";
     //USB文件列表相关
     private ArrayList<UsbFile> usbList = new ArrayList<>();
-    private FileListAdapter<UsbFile> usbAdapter;
+    private FileListAdapter usbAdapter;
     private UsbHelper usbHelper;
 
     private final static String U_DISK_FILE_NAME = "image";
@@ -89,7 +89,7 @@ public class UsbActivity extends AppCompatActivity implements USBBroadCastReceiv
         localList = new ArrayList<>();
         Collections.addAll(localList, new File(localRootPath).listFiles());
         localCurrentPath = localRootPath;
-        localAdapter = new FileListAdapter<>(this, localList);
+        localAdapter = new FileListAdapter(this, localList);
         listView.setAdapter(localAdapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

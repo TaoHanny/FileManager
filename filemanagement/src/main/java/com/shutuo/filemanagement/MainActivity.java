@@ -3,6 +3,7 @@ package com.shutuo.filemanagement;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
@@ -11,14 +12,19 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.mbms.DownloadProgressListener;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Adapter;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,6 +33,9 @@ import com.github.mjdev.libaums.fs.FileSystem;
 import com.github.mjdev.libaums.fs.UsbFile;
 import com.github.mjdev.libaums.fs.UsbFileInputStream;
 import com.github.mjdev.libaums.partition.Partition;
+import com.shutuo.filemanagement.adapter.FileListAdapter;
+import com.shutuo.filemanagement.usbHelper.ImageUtils;
+import com.shutuo.filemanagement.usbHelper.USBBroadCastReceiver;
 import com.shutuo.filemanagement.usbHelper.UsbHelper;
 import com.shutuo.filemanagement.util.FileUtil;
 
@@ -38,8 +47,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener   {
 
     //输入的内容
     private EditText u_disk_edt;
@@ -49,19 +60,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button u_disk_read;
     //显示读取的内容
     private TextView u_disk_show;
-    //显示第一张图片
-    private ImageView u_disk_image;
+    //显示图片
+    private ListView u_disk_listview;
     //自定义U盘读写权限
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     //当前处接U盘列表
     private UsbMassStorageDevice[] storageDevices;
+
+    private USBBroadCastReceiver receiver;
+
+    private final static String IMAGE_FILE_PATH = "/sdcard/arcFace/register";
     //当前U盘所在文件目录
     private UsbFile cFolder;
     //当前U盘图片
     private File[] files;
+    private List<File> imageList;
+    private FileListAdapter adapter;
     private UsbHelper usbHelper;
     private final static String U_DISK_FILE_NAME = "image";
     private final static String TAG = MainActivity.class.getName();
+
+
     private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -84,6 +103,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.file_activity_main);
         initViews();
         registerUDiskReceiver();
+
+
     }
 
     private void initViews() {
@@ -91,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         u_disk_write = (Button) findViewById(R.id.u_disk_write);
         u_disk_read = (Button) findViewById(R.id.u_disk_read);
         u_disk_show = (TextView) findViewById(R.id.u_disk_show);
-        u_disk_image = (ImageView) findViewById(R.id.u_disk_image);
+        u_disk_listview = (ListView) findViewById(R.id.u_disk_listview);
         u_disk_write.setOnClickListener(this);
         u_disk_read.setOnClickListener(this);
     }
@@ -104,7 +125,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        saveText2UDisk(content);
+                        imageList = new ArrayList<>();
+                        imageList = ImageUtils.getImages(IMAGE_FILE_PATH);
+                        if (imageList.size()!=0){
+                            adapter = new FileListAdapter(MainActivity.this,imageList);
+                            u_disk_listview.setAdapter(adapter);
+                            u_disk_listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                @Override
+                                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                                   String path = imageList.get(position).getPath();
+                                    Log.d(TAG, "onItemClick: path = "+path);
+                                    showCustomizeDialog(path,position);
+                                }
+                            });
+                        }
                     }
                 });
             }
@@ -118,6 +152,44 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 });
             }
+    }
+
+    private void showCustomizeDialog(final String path, final int position) {
+        AlertDialog.Builder customizeDialog =
+                new AlertDialog.Builder(MainActivity.this);
+        final View dialogView = LayoutInflater.from(MainActivity.this)
+                .inflate(R.layout.dialog_customize,null);
+        customizeDialog.setTitle("我是一个自定义Dialog");
+        customizeDialog.setView(dialogView);
+        customizeDialog.setPositiveButton("确定",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // 获取EditView中的输入内容
+                        EditText edit_text =
+                                (EditText) dialogView.findViewById(R.id.dialog_edit_text);
+
+                        String newName = edit_text.getText().toString();
+                        String oldName = IMAGE_FILE_PATH+"/"+newName+".jpg";
+                        File oldFile = new File(path);
+                        File newFile = new File(oldName);
+
+                        Log.d(TAG, "onClick: newName = " + oldName);
+                        oldFile.renameTo(newFile);
+                        imageList.set(position,newFile);
+                        adapter.notifyDataSetChanged();
+                        Toast.makeText(MainActivity.this,
+                                edit_text.getText().toString(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+        customizeDialog.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+            }
+        });
+        customizeDialog.show();
     }
 
     private void readFromUDisk() {
@@ -167,54 +239,59 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void registerUDiskReceiver() {
         //监听otg插入 拔出
+        receiver = new USBBroadCastReceiver();
         IntentFilter usbDeviceStateFilter = new IntentFilter();
         usbDeviceStateFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         usbDeviceStateFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        registerReceiver(mOtgReceiver, usbDeviceStateFilter);
+        registerReceiver(receiver, usbDeviceStateFilter);
         //注册监听自定义广播
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        registerReceiver(mOtgReceiver, filter);
+        registerReceiver(receiver, filter);
+        uDiskReceiverListener();
     }
 
-    /**
-     * @description OTG广播，监听U盘的插入及拔出
-     * @author
-     * @time 2019/2/20 17:00
-     * @param
-     */
-    private BroadcastReceiver mOtgReceiver = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            switch (action) {
-                case ACTION_USB_PERMISSION://接受到自定义广播
-                    UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                    //允许权限申请
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if (usbDevice != null) {
-                            //用户已授权，可以进行读取操作
-                            readDevice(getUsbMass(usbDevice));
-                            Log.d(TAG, "onReceive: 接受自定义广播");
-                        } else {
-                            showToastMsg("没有插入U盘");
-                        }
-                    } else {
-                        showToastMsg("未获取到U盘权限");
-                    }
-                    break;
-                case UsbManager.ACTION_USB_DEVICE_ATTACHED://接收到U盘设备插入广播
-                    UsbDevice device_add = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                    if (device_add != null) {
-                        //接收到U盘插入广播，尝试读取U盘设备数据
-                        Log.d(TAG, "onReceive: 接受到U盘设备插入广播");
-                        redUDiskDevsList();
-                    }
-                    break;
-                case UsbManager.ACTION_USB_DEVICE_DETACHED://接收到U盘设设备拔出广播
-                    showToastMsg("U盘已拔出");
-                    break;
-            }
-        }
-    };
+
+
+//
+//    /**
+//     * @description OTG广播，监听U盘的插入及拔出
+//     * @author
+//     * @time 2019/2/20 17:00
+//     * @param
+//     */
+//    private BroadcastReceiver mOtgReceiver = new BroadcastReceiver() {
+//        public void onReceive(Context context, Intent intent) {
+//            String action = intent.getAction();
+//            switch (action) {
+//                case ACTION_USB_PERMISSION://接受到自定义广播
+//                    UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+//                    //允许权限申请
+//                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+//                        if (usbDevice != null) {
+//                            //用户已授权，可以进行读取操作
+//                            readDevice(getUsbMass(usbDevice));
+//                            Log.d(TAG, "onReceive: 接受自定义广播");
+//                        } else {
+//                            showToastMsg("没有插入U盘");
+//                        }
+//                    } else {
+//                        showToastMsg("未获取到U盘权限");
+//                    }
+//                    break;
+//                case UsbManager.ACTION_USB_DEVICE_ATTACHED://接收到U盘设备插入广播
+//                    UsbDevice device_add = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+//                    if (device_add != null) {
+//                        //接收到U盘插入广播，尝试读取U盘设备数据
+//                        Log.d(TAG, "onReceive: 接受到U盘设备插入广播");
+//                        redUDiskDevsList();
+//                    }
+//                    break;
+//                case UsbManager.ACTION_USB_DEVICE_DETACHED://接收到U盘设设备拔出广播
+//                    showToastMsg("U盘已拔出");
+//                    break;
+//            }
+//        }
+//    };
 
     /**
      * @description U盘设备读取
@@ -289,43 +366,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 e.printStackTrace();
             }
         }
-
-//                        
-//                        files =  getImages("/"+usbFile1.getName());
-//                        if (files.length != 0){
-//                            u_disk_image.setImageURI(Uri.fromFile(files[1]));
-//                        }
-        //读取文件内容
-//        InputStream is = new UsbFileInputStream(descFile);
-//        //读取秘钥中的数据进行匹配
-//        StringBuilder sb = new StringBuilder();
-//        BufferedReader bufferedReader = null;
-//        try {
-//            bufferedReader = new BufferedReader(new InputStreamReader(is));
-//            String read;
-//            while ((read = bufferedReader.readLine()) != null) {
-//                sb.append(read);
-//            }
-//            String  rd = ""+sb;
-//            if (rd !=null && !rd.isEmpty()){
-//                Message msg = mHandler.obtainMessage();
-//                msg.what = 101;
-//                msg.obj = rd;
-//                mHandler.sendMessage(msg);
-//            }
-//        }
-//        catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        finally {
-//            try {
-//                if (bufferedReader != null) {
-//                    bufferedReader.close();
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
     }
 
     /**
@@ -341,10 +381,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void run() {
                 //复制结果
-                if(usbHelper==null){
-                    Log.d(TAG, "run: usbhelper");
-                }
-
                 boolean result;
                 try {
                     //开始写入
@@ -360,11 +396,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     while ((bytesRead = uis.read(buffer)) != -1) {
                         fos.write(buffer, 0, bytesRead);
                         writeCount += bytesRead;
-//                Log.e(TAG, "Progress : write : " + writeCount + " All : " + avi);
-//                        if (progressListener != null) {
-//                            //回调下载进度
-//                            progressListener.downloadProgress((int) (writeCount * 100 / avi));
-//                        }
                     }
                     fos.flush();
                     uis.close();
@@ -374,60 +405,59 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     e.printStackTrace();
                     result = false;
                 }
-//                return result;
-//                final boolean result = usbHelper.saveUSbFileToLocal(file, filePath, new UsbHelper.DownloadProgressListener() {
-//                    @Override
-//                    public void downloadProgress(final int progress) {
-//                        runOnUiThread(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                String text = "From Usb "
-//                                        + "\nTo Local " + "/sdcard/arcFace/register"
-//                                        + "\n Progress : " + progress;
-//                                Log.d(TAG, "run: text = "+text);
-////                                showProgressTv.setText(text);
-//                            }
-//                        });
-//                    }
-//                });
-//                //主线程更新UI
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        if (result) {
-////                            openLocalFile(new File(localCurrentPath));
-//                        } else {
-//                            Toast.makeText(MainActivity.this, "复制失败",
-//                                    Toast.LENGTH_SHORT).show();
-//                        }
-//                    }
-//                });
             }
         }).start();
     }
 
-    private File[] getImages(String path){
-        Log.d(TAG, "getImages: ");
-        File file = new File(path);
-        Log.d(TAG, "getImages: file");
-        if(file.isDirectory()){
-            Log.d(TAG, "getImages: directory");
-            File[] fs = file.listFiles(imageFilter);
-            return fs;
-        }
-        return null;
+
+
+    /**
+     * Listener
+     *
+     * @yangtao
+     *
+     * @time 2019.2.22 16；34
+     *
+     */
+    private void uDiskReceiverListener(){
+        receiver.setUsbListener(new USBBroadCastReceiver.UsbListener(){
+
+            //u盘Listener
+            @Override
+            public void insertUsb(UsbDevice device_add) {
+                //接收到U盘插入广播，尝试读取U盘设备数据
+                Log.d(TAG, "onReceive: 接受到U盘设备插入广播");
+                redUDiskDevsList();
+            }
+
+            @Override
+            public void removeUsb(UsbDevice device_remove) {
+                showToastMsg("U盘已拔出");
+            }
+
+            @Override
+            public void getReadUsbPermission(UsbDevice usbDevice) {
+                readDevice(getUsbMass(usbDevice));
+                Log.d(TAG, "onReceive: 接受自定义广播");
+            }
+
+            @Override
+            public void failedReadUsb(UsbDevice usbDevice) {
+                showToastMsg("未获取到U盘权限");
+            }
+        });
     }
 
-    private FileFilter imageFilter = new FileFilter() {
-        @Override
-        public boolean accept(File pathname) {
-             String name = pathname.getName();
-             return name.endsWith(".jpg") || name.endsWith(".png") || name.endsWith(".jpeg");
-        }
-    };
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterReceiver(receiver);
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mOtgReceiver);
     }
+
+
 }

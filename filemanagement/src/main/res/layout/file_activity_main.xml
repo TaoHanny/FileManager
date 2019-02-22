@@ -20,7 +20,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
-        android:hint="输入要保存到U盘中的文字内容"/>
+        android:hint="输入要保存到U盘中的文字内容"
+        android:visibility="gone"/>
 
 
     <Button
@@ -47,10 +48,9 @@
         android:layout_marginLeft="10dp"
         />
 
-    <ImageView
-        android:id="@+id/u_disk_image"
+    <ListView
+        android:id="@+id/u_disk_listview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
         android:layout_margin="10dp"/>
 </LinearLayout>

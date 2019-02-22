@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.util.Log;
 
 /**
  * Author ：
@@ -16,6 +17,8 @@ import android.hardware.usb.UsbManager;
 public class USBBroadCastReceiver extends BroadcastReceiver {
 
     private UsbListener usbListener;
+
+    private final static String TAG = USBBroadCastReceiver.class.getName();
 
     public static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
 
@@ -43,6 +46,7 @@ public class USBBroadCastReceiver extends BroadcastReceiver {
             case UsbManager.ACTION_USB_DEVICE_ATTACHED://接收到存储设备插入广播
                 UsbDevice device_add = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device_add != null) {
+                         Log.d(TAG, "onReceive: in");
                     if (usbListener != null) {
                         usbListener.insertUsb(device_add);
                     }
@@ -52,6 +56,7 @@ public class USBBroadCastReceiver extends BroadcastReceiver {
                 //接收到存储设备拔出广播
                 UsbDevice device_remove = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device_remove != null) {
+                        Log.d(TAG, "onReceive: out");
                     if (usbListener != null) {
                         usbListener.removeUsb(device_remove);
                     }
