@@ -2,12 +2,14 @@ package com.shutuo.filemanagement.adapter;
 
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.shutuo.filemanagement.R;
 
 import java.io.File;
@@ -54,7 +56,8 @@ public class FileListAdapter extends BaseAdapter {
         }
         File file = list.get(position);
 
-        holder.icon.setImageURI(Uri.fromFile(file));
+        Glide.with(context).load(Uri.fromFile(file)).placeholder(R.mipmap.loading).into(holder.icon);
+
         holder.name.setText(file.getName());
         return convertView;
     }

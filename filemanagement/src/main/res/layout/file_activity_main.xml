@@ -7,38 +7,28 @@
     tools:context="com.shutuo.filemanagement.MainActivity"
     android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Android盒子外接U盘文件读写测试DEMO"
-        android:layout_gravity="center"
-        android:layout_margin="10dp"
-        />
 
-    <EditText
-        android:id="@+id/u_disk_edt"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:hint="输入要保存到U盘中的文字内容"
-        android:visibility="gone"/>
-
-
-    <Button
-        android:id="@+id/u_disk_write"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:gravity="center"
-        android:text="往U盘中写入数据"/>
 
     <Button
         android:id="@+id/u_disk_read"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
-        android:gravity="center"
-        android:text="从U盘中读取数据"/>
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:layout_gravity="center_horizontal"
+        android:text="拷贝U盘的数据"/>
+
+    <Button
+        android:id="@+id/u_disk_write"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:layout_gravity="center_horizontal"
+        android:text="跳转到注册页面"
+        android:visibility="gone"/>
 
     <TextView
         android:id="@+id/u_disk_show"

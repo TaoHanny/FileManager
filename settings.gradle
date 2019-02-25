@@ -1,1 +1,1 @@
-include ':app', ':filemanagement'
+include ':app', ':base', ':arcOfflineLib', ':facearcregister'

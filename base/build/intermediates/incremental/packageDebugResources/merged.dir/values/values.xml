@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="Red">#f00</color>
+    <color name="black">#000</color>
+    <color name="black_50">#7F000000</color>
+    <color name="color1">#ff0f9d58</color>
+    <color name="color2">#ffdb4437</color>
+    <color name="color3">#ff4285f4</color>
+    <color name="color4">#fff4b400</color>
+    <color name="debug_blue">#2196F3</color>
+    <color name="debug_brown">#795548</color>
+    <color name="debug_gray">#757575</color>
+    <color name="debug_green">#43A047</color>
+    <color name="debug_orange">#EF6C00</color>
+    <color name="debug_red">#D50000</color>
+    <color name="gray_E">#C4C4C4</color>
+    <color name="gray_F">#F7F7F7</color>
+    <color name="half_color">#30000000</color>
+    <color name="ltgray">#FFCCCCCC</color>
+    <color name="white_68">#ADFFFFFF</color>
+    <color name="window_background">#FFF5F5F5</color>
+    <color name="yellow_complete">#FF6600</color>
+    <color name="yellow_normal">#FF9900</color>
+    <color name="yellow_pressed">#FFCC00</color>
+    <color name="yellow_progress">#FFFF00</color>
+    <string name="app_name">base</string>
+</resources>
